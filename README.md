@@ -3,6 +3,9 @@
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![Platform: ESP32](https://img.shields.io/badge/Platform-ESP32-green.svg)](https://www.espressif.com/en/products/socs/esp32)
 
+> **⚠️ Project Status: Experimental / Demo Phase**
+> *This project is currently in the active prototyping and development stage. While core functionalities such as dual-microcontroller communication and basic kinematics are operational, the firmware and hardware configurations may contain bugs, lack final calibration, or exhibit instability. It is not yet fully optimized for production-level astrophotography. Future updates will focus on algorithmic refinement and system stability. Contributions, testing, and feedback are highly welcomed.*
+
 ## 1. Project Overview
 
 This repository contains the firmware and documentation for a custom-built, GoTo-capable equatorial star tracking mount. Originally developed as a university engineering capstone project, this system is now open-sourced to provide a foundation for custom astrophotography mounts and motorized tracking applications.
