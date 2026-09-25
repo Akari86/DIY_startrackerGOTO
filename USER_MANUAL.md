@@ -1,72 +1,60 @@
-# DIY_startrackerGOTO: Operator Manual
+# User Manual - DIY Star Tracker GoTo
 
-## 1. Introduction
-This document serves as the official operating manual for the DIY_startrackerGOTO system. It outlines the operational procedures for utilizing the HMI (Human-Machine Interface) via the ESP32-2432S028R (CYD) touchscreen and explains the corresponding mechanical behaviors executed by the Main Motor Controller.
-
----
-
-## 2. Interface Overview
-The system boots directly into the **Home Menu**, which is the central hub for all tracker operations. The interface is divided into four primary interactive zones accessible via the top navigation bar or direct screen tap:
-1. **Homing (Radar/House Icon):** Initiates mechanical zero-positioning.
-2. **Quick Tracking (Star Icon):** Accesses standard tracking rate profiles.
-3. **GoTo Catalog (Book/List Icon):** Accesses the offline celestial database for automated targeting.
-4. **Settings (Gear Icon):** System configuration and display adjustments.
+This manual provides instructions for operating the touchscreen interface (CYD_Slave) to control the GoTo Star Tracker system.
+**CYD Latest Firmware Version: 3.0 (NASA API Integration)**
 
 ---
 
-## 3. Operational Procedures
+## 1. Home Screen
+Upon startup, the system displays the Home Screen with 4 navigation icons at the bottom:
+1. **Homing (House Icon) :** Commands the motors to seek their physical zero positions.
+2. **Quick Tracking (Clock Icon) :** Engages standard tracking rates without specific coordinates.
+3. **Catalog & NASA (Star Icon) :** Selects targets from the offline database or fetches live data from NASA.
+4. **Settings (Gear Icon) :** Adjusts display brightness, toggles Night Mode, and calibrates the IMU.
 
-### 3.1 Startup & Initialization
-1. Ensure the stepper motors are free from physical obstruction.
-2. Power on the Main Board and the CYD Display. 
-3. The display will show a boot sequence and establish UART serial communication with the Main Board.
-4. Once initialized, the system will enter the **Home Menu**.
+---
 
-### 3.2 Homing Calibration (Mechanical Zeroing)
-*It is highly recommended to perform Homing prior to any GoTo operations to establish an accurate mechanical reference frame.*
-1. From the Home Menu, tap the **Homing Icon**.
-2. The screen will display `HOMING...` and lock user input.
-3. **Mechanical Behavior:** The Main Board will engage both the Right Ascension (RA) and Declination (DEC) motors at high traversal speed (`SPEED_HOMING`).
-4. The motors will continue to slew until the physical Hall Effect limit switches are triggered (logic `LOW`).
-5. Upon triggering, the internal coordinate counters are reset to zero. The system will report `H:DONE` to the display, and the interface will automatically return to the Home Menu.
+## 2. Basic Operations
 
-### 3.3 Quick Tracking (Constant Rate)
-Use this mode for general astrophotography where the telescope is already manually aligned to a target.
-1. Tap the **Star Icon** to enter the Quick Tracking menu.
-2. Select one of the predefined kinematic profiles:
-   - **Sidereal (Stars):** Standard Earth rotation compensation.
-   - **Lunar (Moon):** Adjusted rate for lunar motion.
-   - **Solar (Sun):** Adjusted rate for solar tracking.
-3. **Mechanical Behavior:** The Main Board will instantly apply the selected frequency to the RA motor driver. The mount will continuously track until a manual cancellation is issued.
-4. Tap the **Cancel/Stop** button on the UI to halt the motors.
+### 2.1 Homing (CRITICAL: Must be performed on startup)
+*The system must establish a mechanical zero point before any GoTo operations can be calculated accurately.*
+1. Tap the **Homing** icon.
+2. The display will show `HOMING...`
+3. Both axes will slew until the Hall Effect sensors are triggered. Upon successful triggering, coordinates zero out and the screen displays `H:DONE`.
+4. **Safety Timeout (Homing Abort):** If a motor steps more than 200,000 times (slightly over 360 degrees) without triggering a sensor, the system will execute a hard abort. The display will show an orange "Homing Aborted" popup. This prevents cable snagging and motor damage.
 
-### 3.4 GoTo Catalog Tracking (Automated Targeting)
-Use this mode to automatically slew the mount to a specific celestial object from the internal database.
-1. Tap the **Catalog Icon**.
-2. Browse the celestial targets (e.g., Orion Nebula, Andromeda).
-3. Tap the desired target. The system will transition to the **Timer/Confirmation** interface.
-4. **Tumbler UI:** Use the kinetic scrolling interface (swipe up/down) to adjust the tracking duration (Hours and Minutes). 
-   - *Note: The system automatically calculates and displays the Estimated Finish Time based on the local timezone.*
+### 2.2 Quick Tracking Mode
+Used for standard sidereal tracking without GoTo:
+1. Tap the **Quick Tracking** icon.
+2. Select the desired tracking rate:
+   - **Sidereal:** Standard rate for stars and deep-sky objects.
+   - **Lunar:** Tracking rate optimized for the Moon.
+   - **Solar:** Tracking rate optimized for the Sun.
+3. The Right Ascension (RA) motor will immediately begin tracking. You can tap the **STOP** button on the Home Screen at any time.
+
+### 2.3 Catalog & NASA API Mode (Automated GoTo)
+1. Tap the **Catalog** icon. The system will prompt you to select a target source:
+   - **APP (Stellarium WiFi):** Wait for external Wi-Fi commands.
+   - **NASA HORIZONS (LIVE):** Fetch real-time data from the internet.
+   - **OFFLINE (INTERNAL):** Use the internal deep-sky database.
+2. **If NASA HORIZONS (LIVE) is selected:**
+   - Choose a planetary target (Moon, Mars, Jupiter).
+   - The CYD will connect to the NASA JPL Horizons API and fetch the absolute real-time RA/DEC coordinates (Requires Wi-Fi connection).
+3. **If OFFLINE is selected:** 
+   - Scroll and select an internal target (e.g., Orion Nebula, Andromeda).
+4. After target acquisition, the system opens the **Timer** page.
+   - Swipe the Hour and Minute tumblers to define your intended tracking duration (Exposure Time).
 5. Tap **START TRACKING**.
-6. **Mechanical Behavior:** 
-   - The system calculates the shortest path from the current position to the target RA/DEC coordinates.
-   - Both motors will slew at maximum safe velocity to the target (GoTo phase).
-   - Once the target coordinates are reached, the system automatically seamlessly transitions into Sidereal tracking mode.
-7. Upon completion of the specified timer duration, the tracking halts, the display dims, and a **"TRACKING COMPLETE"** notification is presented.
+6. The mount will rapidly slew to the target coordinates and seamlessly transition into the sidereal tracking state until the timer expires.
 
-### 3.5 System Settings
-Access the Settings menu via the **Gear Icon**.
-- **Display Brightness:** Toggles the TFT backlight PWM between standard and dim states to preserve night vision.
-- **Night Mode:** Inverts the UI color palette to red/black, eliminating blue light emission for optimal dark-site adaptation.
-- **IMU Calibration:** Sends a command (`C:CALIMU`) to reset/calibrate the BNO055 inertial measurement unit (if installed).
+### 2.4 NASA APOD Screensaver
+- Navigate to Catalog -> NASA HORIZONS -> NASA APOD.
+- The display will download and render NASA's Astronomy Picture of the Day.
+- Tap anywhere on the screen to exit and return to the menu.
 
 ---
 
-## 4. Safety & Emergency Stop
-- **Manual Halt:** Any active motor operation (Homing, GoTo, or Tracking) can be immediately aborted by tapping the **CANCEL** button on the touchscreen.
-- **Physical Disconnect:** If the mount approaches physical collision limits and the software fails to respond, immediately disconnect the primary DC power supply to the stepper drivers.
-
-## 5. Troubleshooting
-- **No Response from Motors:** Ensure the TX/RX crossover connection between the CYD and Main Board is secure. Check the common logic ground.
-- **Homing Never Completes:** Verify the Hall Effect sensors are properly seated and passing a logic `LOW` state to the ESP32 GPIO pins when a magnet is present.
-- **Jumpy/Erratic Scrolling:** Ensure the screen is clean. The kinetic scrolling tumbler relies on smooth delta-Y touch calculation.
+## 3. System Settings
+- **Brightness:** Toggle backlight intensity.
+- **Red Mode (Night Mode):** Shifts the entire UI color palette to red to preserve dark adaptation for visual astronomy.
+- **Calibrate IMU:** Calibrates the BNO055 9-DOF sensor (if equipped) to establish precise azimuth and altitude references.
