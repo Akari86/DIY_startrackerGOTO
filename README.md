@@ -19,12 +19,13 @@ The control system is distributed across two discrete ESP32 microcontrollers:
 - **Display Controller (HMI):** ESP32-2432S028R (Cheap Yellow Display - CYD) featuring a 2.8" TFT touchscreen interface.
 - **Motion Controller (Main Board):** Standard ESP32 NodeMCU/DevKit.
 - **Actuators:** NEMA 17 Stepper Motors (Right Ascension and Declination axes).
-- **Motor Drivers:** Compatible with standard step/dir drivers (e.g., TMC2209, A4988).
+- **Motor Drivers:** Compatible with standard step/dir drivers (BigTreeTech TMC2209 highly recommended over generic OEMs for precise current output and thermal stability).
 - **Sensors:** 
-  - Hall Effect sensors for precise hardware zero-positioning (Homing).
+  - Hall Effect sensors for precise hardware zero-positioning (Homing) with mechanical timeout safety.
   - BNO055 9-DOF IMU for orientation and leveling metrics (Optional).
 
-### 2.2 Software Architecture
+### 2.2 Software Architecture (Ver 3.0)
+- **NASA API Integration:** The Display Controller acts as a Wi-Fi client, parsing live JSON data from the **NASA JPL Horizons API** to compute real-time ephemeris data for the Moon, Mars, and Jupiter. It also renders the NASA Astronomy Picture of the Day (APOD) directly to the screen via a custom SPIFFS-buffered JPEG decoder.
 - **FreeRTOS Integration:** The Motion Controller leverages the ESP32's dual-core architecture. Core 1 is strictly dedicated to high-frequency stepper motor pulse generation, while Core 0 handles serial parsing and asynchronous tasks.
 - **Coordinate System:** Implements an internal celestial catalog for offline GoTo operations, eliminating the requirement for active network connections in the field.
 - **Tracking Rates:** Mathematically derived tracking speeds for Sidereal, Lunar, and Solar rates.
@@ -35,7 +36,7 @@ The Display Controller and Motion Controller communicate asynchronously via UART
 
 **Serial Configuration:**
 - **Baud Rate:** 115200 bps
-- **Protocol:** Custom ASCII string commands (e.g., `M:SIDEREAL`, `C:HOME`, `H:DONE`)
+- **Protocol:** Custom ASCII string commands (e.g., `M:SIDEREAL`, `C:HOME`, `H:DONE`, `H:ERR`, `T:ra,dec`)
 
 **Wiring Diagram:**
 | ESP32-2432S028R (CYD) | ESP32 (Motion Controller) |
@@ -51,19 +52,19 @@ The Display Controller and Motion Controller communicate asynchronously via UART
 The firmware is developed and managed using the PlatformIO ecosystem.
 
 ### 4.1 Motion Controller Deployment
-1. Open the `MainBoard` directory in PlatformIO.
+1. Open the `Master/MainBoard` directory in PlatformIO.
 2. Compile and flash the firmware to the primary ESP32 module.
 
 ### 4.2 Display Controller (HMI) Deployment
-1. Open the `CYD_Display` directory in PlatformIO.
+1. Open the `Master/CYD_Slave` directory in PlatformIO.
 2. **Configuration Requirement:** The `TFT_eSPI` library requires hardware-specific pin mapping. You must replace the default `User_Setup.h` within the library directory with the configuration specific to the ESP32-2432S028R (ILI9341 driver). Failure to do so will result in a blank display.
 3. Compile and flash the firmware to the CYD module.
 
 ## 5. Operational Procedures
 
 - **Initialization:** Upon power-up, the system initializes the HMI and awaits user input.
-- **Homing Sequence:** Initiating the homing command engages the motors at high traversal speeds until the physical Hall Effect limit switches are triggered. The internal step counters are subsequently zeroed, establishing an absolute mechanical reference frame.
-- **GoTo Execution:** Users may select a target from the internal catalog and define an exposure duration via the touchscreen interface. The Motion Controller will slew to the calculated Right Ascension and Declination coordinates and automatically transition into Sidereal tracking.
+- **Homing Sequence:** Initiating the homing command engages the motors at high traversal speeds until the physical Hall Effect limit switches are triggered. The internal step counters are subsequently zeroed, establishing an absolute mechanical reference frame. Includes a timeout abort to prevent hardware damage.
+- **Live Ephemeris & GoTo:** Users may select a static target from the internal catalog or fetch dynamic planetary coordinates via the NASA API. The Motion Controller will slew to the calculated Right Ascension and Declination coordinates and automatically transition into Sidereal tracking.
 - **Manual Override:** The control loop can be interrupted at any time via software stop commands, triggering an immediate deceleration of all active axes.
 
 ## 6. License
